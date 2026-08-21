@@ -3,6 +3,11 @@ data "aws_region" "current" {}
 resource "aws_vpc" "this" {
   cidr_block = var.vpc_cidr_block
 
+  # Required for the Secrets Manager VPC endpoint's private DNS to work —
+  # enable_dns_hostnames defaults to false for non-default VPCs.
+  enable_dns_support   = true
+  enable_dns_hostnames = true
+
   tags = {
     Name = "${var.name_prefix}-vpc"
   }
