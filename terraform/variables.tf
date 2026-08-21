@@ -47,14 +47,13 @@ variable "db_engine_version" {
   default     = "16"
 }
 
-# db.t3.micro rather than the brief's db.t3.medium — set to a free-tier
-# eligible size for now while testing against a fresh AWS account. The
-# database module's own default stays db.t3.medium (per the brief); this
-# is an override at the call site, not a change to the module itself.
+# db.t3.medium per the brief's "standard compute capacity" requirement.
+# Testing used db.t3.micro (free-tier eligible); reverted now that
+# verification is done.
 variable "db_instance_class" {
   description = "RDS instance class"
   type        = string
-  default     = "db.t3.micro"
+  default     = "db.t3.medium"
 }
 
 variable "db_allocated_storage" {
