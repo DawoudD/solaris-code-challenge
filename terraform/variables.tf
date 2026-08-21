@@ -48,8 +48,6 @@ variable "db_engine_version" {
 }
 
 # db.t3.medium per the brief's "standard compute capacity" requirement.
-# Testing used db.t3.micro (free-tier eligible); reverted now that
-# verification is done.
 variable "db_instance_class" {
   description = "RDS instance class"
   type        = string

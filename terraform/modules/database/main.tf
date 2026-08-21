@@ -20,6 +20,10 @@ resource "aws_db_instance" "this" {
   vpc_security_group_ids = var.vpc_security_group_ids
   publicly_accessible    = false
 
+  # Defaults to false, which requires naming a final_snapshot_identifier
+  # on every deletion — skipping it since this is disposable infrastructure.
+  skip_final_snapshot = true
+
   tags = {
     Name = "${var.name_prefix}-db"
   }
