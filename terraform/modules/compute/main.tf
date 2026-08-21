@@ -59,6 +59,11 @@ resource "aws_lambda_function" "api" {
   handler       = var.handler
   timeout       = var.timeout
   filename      = var.filename
+  # filename alone doesn't trigger a redeploy when the value is a fixed
+  # string across builds (as it is here — the pipeline always writes to
+  # "lambda.zip"). Hashing the zip's actual contents ensures Terraform
+  # detects and uploads code changes even though the filename never changes.
+  source_code_hash = filebase64sha256(var.filename)
 
   vpc_config {
     subnet_ids         = var.subnet_ids
