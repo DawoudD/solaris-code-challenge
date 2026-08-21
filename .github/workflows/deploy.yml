@@ -1,0 +1,78 @@
+name: Deploy
+
+# Accepts future code changes to the API, per the brief.
+on:
+  push:
+    branches: [main]
+
+env:
+  AWS_REGION: eu-west-2
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    # Placeholder path — actual API source directory not decided yet.
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: api/package-lock.json
+
+      - run: npm ci
+      - run: npm test --if-present
+
+  package:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # Production-only deps, zipped into the Lambda deployment package.
+      - working-directory: api
+        run: |
+          npm ci --omit=dev
+          zip -r ../lambda.zip .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lambda-package
+          path: lambda.zip
+
+  deploy:
+    needs: package
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: lambda-package
+          path: terraform
+
+      # Static credentials, per agreed decision — stored as GitHub Secrets.
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: hashicorp/setup-terraform@v3
+
+      - run: terraform init
+
+      - run: terraform plan -var="lambda_filename=lambda.zip"
+
+      - run: terraform apply -auto-approve -var="lambda_filename=lambda.zip"
