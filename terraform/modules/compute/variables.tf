@@ -18,6 +18,15 @@ variable "handler" {
   type        = string
 }
 
+# AWS defaults to 3s, which is tight for a cold start needing to attach a
+# VPC ENI, fetch the DB password from Secrets Manager, and open a Postgres
+# connection — all in the same invocation.
+variable "timeout" {
+  description = "Lambda function timeout, in seconds"
+  type        = number
+  default     = 10
+}
+
 # The API code doesn't exist yet, so the deployment package is left as a
 # variable rather than a real artifact. Will be populated once the
 # CI/CD pipeline builds and packages the Node.js code.

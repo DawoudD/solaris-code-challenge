@@ -3,3 +3,4 @@ node_modules/
 *.tfstate
 *.tfstate.*
 *.zip
+.DS_Store

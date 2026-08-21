@@ -57,6 +57,7 @@ resource "aws_lambda_function" "api" {
   role          = aws_iam_role.lambda_exec.arn
   runtime       = var.runtime
   handler       = var.handler
+  timeout       = var.timeout
   filename      = var.filename
 
   vpc_config {

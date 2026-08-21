@@ -1,3 +1,5 @@
+data "aws_region" "current" {}
+
 resource "aws_vpc" "this" {
   cidr_block = var.vpc_cidr_block
 
@@ -97,6 +99,54 @@ resource "aws_vpc_security_group_ingress_rule" "rds_from_lambda" {
   to_port                      = var.db_port
   ip_protocol                  = "tcp"
   referenced_security_group_id = aws_security_group.lambda.id
+}
+
+# --- Secrets Manager VPC endpoint ---
+# Lambda fetches the RDS master password from Secrets Manager at runtime,
+# but Secrets Manager is normally a public AWS API endpoint — and this
+# Lambda has no internet route (no NAT/IGW, by design). This Interface
+# endpoint lets it reach Secrets Manager entirely within the VPC instead.
+resource "aws_security_group" "vpc_endpoints" {
+  name_prefix = "${var.name_prefix}-vpce-"
+  description = "Security group for VPC interface endpoints"
+  vpc_id      = aws_vpc.this.id
+
+  tags = {
+    Name = "${var.name_prefix}-vpce-sg"
+  }
+}
+
+resource "aws_vpc_security_group_ingress_rule" "vpc_endpoints_from_lambda" {
+  security_group_id = aws_security_group.vpc_endpoints.id
+
+  description                  = "Allow inbound HTTPS from the Lambda security group"
+  from_port                    = 443
+  to_port                      = 443
+  ip_protocol                  = "tcp"
+  referenced_security_group_id = aws_security_group.lambda.id
+}
+
+resource "aws_vpc_security_group_egress_rule" "lambda_to_vpc_endpoints" {
+  security_group_id = aws_security_group.lambda.id
+
+  description                  = "Allow outbound HTTPS to the VPC endpoints security group"
+  from_port                    = 443
+  to_port                      = 443
+  ip_protocol                  = "tcp"
+  referenced_security_group_id = aws_security_group.vpc_endpoints.id
+}
+
+resource "aws_vpc_endpoint" "secretsmanager" {
+  vpc_id              = aws_vpc.this.id
+  service_name        = "com.amazonaws.${data.aws_region.current.name}.secretsmanager"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = aws_subnet.compute[*].id
+  security_group_ids  = [aws_security_group.vpc_endpoints.id]
+  private_dns_enabled = true
+
+  tags = {
+    Name = "${var.name_prefix}-secretsmanager-endpoint"
+  }
 }
 
 # --- RDS subnet group ---
