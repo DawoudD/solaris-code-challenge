@@ -34,6 +34,9 @@ async function getPool() {
     database: process.env.DB_NAME,
     user: process.env.DB_USER,
     password,
+    // RDS Postgres enforces SSL (rds.force_ssl) by default — connecting
+    // without this raises "no pg_hba.conf entry ... no encryption".
+    ssl: { rejectUnauthorized: false },
   });
 
   return pool;
